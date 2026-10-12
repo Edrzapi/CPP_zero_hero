@@ -1,0 +1,58 @@
+# ===========================
+# CMake build output
+# ===========================
+build/
+build-*/
+out/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+CMakeUserPresets.json
+cmake_install.cmake
+CTestTestfile.cmake
+# (CTest's Testing/ folder lives inside build/, ignored above. Not listed here:
+#  Windows matches ignore rules case-insensitively, so Testing/ would hide testing/.)
+compile_commands.json
+_deps/
+
+# ===========================
+# Compiled output
+# ===========================
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.exp
+*.out
+*.ii
+
+# ===========================
+# Visual Studio
+# ===========================
+.vs/
+*.user
+*.suo
+*.sln
+*.vcxproj
+*.vcxproj.filters
+
+# ===========================
+# IDE files
+# ===========================
+.idea/
+*.iml
+.vscode/
+.cache/
+
+# ===========================
+# OS files
+# ===========================
+.DS_Store
+Thumbs.db
+Desktop.ini
