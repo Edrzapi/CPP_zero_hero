@@ -8,11 +8,16 @@ How to build, run and check every target in C++ Zero to Hero, and what has alrea
 
 | Toolchain | Status |
 |-----------|--------|
-| MSVC 19.44 (Visual Studio 2022 17.14), Windows 11, Ninja and VS generators | **Verified**: all builds below pass, zero warnings at `/W4`, clean with `/WX`, all 82 default targets pass `ctest` in Debug, Release and Debug + AddressSanitizer; the 3 C++23 targets pass with `/std:c++latest`; every example's output was read and checked against its comments |
-| GCC 13+ (Linux / WSL) | Not yet compiled: no GCC installed on the authoring machine |
-| Clang 17+ (Linux / macOS) | Not yet compiled |
+| MSVC 19.44 (Visual Studio 2022 17.14), Windows 11, Ninja and VS generators | **Verified**: all builds below pass, zero warnings at `/W4`, clean with `/WX`, all 109 default `ctest` tests (82 examples, 13 task starters, 14 task checks) pass in Debug, Release and Debug + AddressSanitizer; the 3 C++23 targets pass with `/std:c++latest`; every example's output was read and checked against its comments; every task solution passes `tasks/check/check.py` (Python 3.13) |
+| GCC 15.2.0 (Ubuntu 26.04, WSL 2) | **Verified**: zero warnings at `-Wall -Wextra -Wpedantic`, clean with `-Werror`; all 109 default `ctest` tests pass in Debug, Release and Debug + ASan/UBSan (no sanitizer reports); the 3 C++23 targets build and pass (112 tests) |
+| Clang 21.1.8 with libstdc++ 15 (Ubuntu 26.04, WSL 2) | **Verified**: same results as GCC 15 (Debug, Release `-Werror`, ASan/UBSan, C++23 with 112 tests) |
+| Clang 21.1.8 with libc++ 21 (`-stdlib=libc++`) | **Verified**: zero warnings, 109 tests pass in Debug, Release `-Werror` and ASan/UBSan. C++23 build: `<generator>` is not in libc++ yet, as expected (section 2) |
+| GCC 13.4.0 (the stated minimum) | **Verified**: zero warnings, 109 tests pass in Debug and Release `-Werror` |
+| Clang 17.0.6 (the stated minimum) | **Verified**: zero warnings, 109 tests pass in Debug and Release `-Werror`, with both libstdc++ 15 and libstdc++ 13 (`--gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13`) |
 
-The code was written to the standard and checked against known GCC/Clang warnings (`-Wall -Wextra -Wpedantic`), but it has only been compiled by MSVC. Run the GCC and Clang matrix below before relying on it there.
+Linux tools used: CMake 4.2.3, Ninja 1.13.2, Python 3.14.4, SQLite 3.46.1 (`libsqlite3-dev`), curl from the distribution. The task 10 (system `libsqlite3`) and task 12 (POSIX sockets, `popen` + `curl`) Linux paths are compiled and checked by `check_task10`, `check_task12` and `check_task12_stretch`; the live `task12_solution --lookup Dune` call through `curl` also returned results with GCC, Clang and libc++. The sanitizer runs used `UBSAN_OPTIONS=halt_on_error=1`, so any UBSan report would have failed its test.
+
+MSVC was re-verified after the GCC/Clang fixes (MSVC 19.44.35228, VS-bundled CMake 3.31.6 and Ninja 1.12.1): Debug 109/109, Release `/WX` + C++23 112/112, Debug + ASan + UB demos 109/109, zero `/W4` warnings outside the UB demos.
 
 ---
 
@@ -23,28 +28,29 @@ Run each configuration from the repository root. Every one should configure, bui
 ### Linux / WSL (GCC)
 
 ```bash
-sudo apt install build-essential cmake ninja-build      # Ubuntu 24.04: GCC 13
+sudo apt install build-essential cmake ninja-build      # Ubuntu 24.04: GCC 13, Ubuntu 26.04: GCC 15
+sudo apt install libsqlite3-dev python3                 # for tasks/ (task 10 and the checks)
 
 # A. Default Debug build
 cmake -S . -B build-gcc -G Ninja -DCMAKE_BUILD_TYPE=Debug
 cmake --build build-gcc 2>&1 | tee build-gcc.log
-ctest --test-dir build-gcc --output-on-failure           # expect: 82 tests, 100% passed
+ctest --test-dir build-gcc --output-on-failure           # expect: 109 tests, 100% passed (fewer without Python or SQLite, see section 2)
 grep -c "warning:" build-gcc.log                         # expect: 0
 
 # B. Release, warnings as errors
 cmake -S . -B build-gcc-rel -G Ninja -DCMAKE_BUILD_TYPE=Release -DCPPZH_WARNINGS_AS_ERRORS=ON
 cmake --build build-gcc-rel
-ctest --test-dir build-gcc-rel --output-on-failure       # expect: 82 tests, 100% passed
+ctest --test-dir build-gcc-rel --output-on-failure       # expect: 109 tests, 100% passed
 
 # C. C++23 targets (GCC 14+ needed for <generator> and <print>)
 cmake -S . -B build-gcc-23 -G Ninja -DCPPZH_ENABLE_CXX23=ON
 cmake --build build-gcc-23
-ctest --test-dir build-gcc-23 --output-on-failure        # expect: 85 tests
+ctest --test-dir build-gcc-23 --output-on-failure        # expect: 112 tests
 
 # D. Sanitizers on the clean code (ASan + UBSan)
 cmake -S . -B build-gcc-asan -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCPPZH_SANITIZE=ON
 cmake --build build-gcc-asan
-ctest --test-dir build-gcc-asan --output-on-failure      # expect: 82 tests, no sanitizer reports
+ctest --test-dir build-gcc-asan --output-on-failure      # expect: 109 tests, no sanitizer reports
 
 # E. The UB lab (see section 4)
 cmake -S . -B build-ub -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCPPZH_BUILD_UB_DEMOS=ON -DCPPZH_SANITIZE=ON
@@ -75,11 +81,11 @@ ctest --test-dir build --output-on-failure
 
 cmake -S . -B build-rel -G Ninja -DCMAKE_BUILD_TYPE=Release -DCPPZH_WARNINGS_AS_ERRORS=ON -DCPPZH_ENABLE_CXX23=ON
 cmake --build build-rel
-ctest --test-dir build-rel --output-on-failure            # 85 tests
+ctest --test-dir build-rel --output-on-failure            # 112 tests
 
 cmake -S . -B build-asan -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCPPZH_BUILD_UB_DEMOS=ON -DCPPZH_SANITIZE=ON
 cmake --build build-asan
-ctest --test-dir build-asan --output-on-failure           # 82 tests
+ctest --test-dir build-asan --output-on-failure           # 109 tests
 
 # Visual Studio generator (multi-config): executables in build-vs\bin\Debug\
 cmake -S . -B build-vs
@@ -102,7 +108,7 @@ cmake --build build --target <target>
 
 Run a whole topic in order with `cmake --build build --target run_<topic>`.
 
-### Default Targets (82, all registered with ctest)
+### Default Targets (82 examples, all registered with ctest)
 
 | Topic | Targets | `run_` target |
 |-------|---------|---------------|
@@ -123,6 +129,25 @@ Run a whole topic in order with `cmake --build build --target run_<topic>`.
 | concurrency | `concurrency_01_threads` `concurrency_02_mutexes` `concurrency_03_condition_variable` `concurrency_04_atomics` `concurrency_05_async_and_future` | `run_concurrency` |
 | testing | `testing_01_assert_and_static_assert` `testing_calculator_test` (links library `testing_calculator`) | `run_testing` |
 | under_the_hood | `under_the_hood_01_constexpr_and_consteval` `under_the_hood_02_structured_bindings` `under_the_hood_03_variant_and_any` `under_the_hood_04_string_view_lifetimes` `under_the_hood_05_attributes` `under_the_hood_06_user_defined_literals` `under_the_hood_07_placement_new_and_alignment` `under_the_hood_08_copy_elision` `under_the_hood_09_small_buffer_optimisation` `under_the_hood_10_compiler_explorer` | `run_under_the_hood` |
+
+### Practical Task Targets (27 ctest tests)
+
+Every task folder builds `taskNN_starter` and `taskNN_solution` (`NN` is `01` to `12`, or `B`). See `tasks/README.md`.
+
+| ctest test | What it runs | Passes when |
+|------------|--------------|-------------|
+| `task01_starter` ... `task12_starter`, `taskB_starter` (13) | the starter, with `tasks/data` for 08 to 12 | it prints `not implemented` |
+| `check_task01` ... `check_task12`, `check_task12_stretch`, `check_taskB` (14) | `tasks/check/check.py` on the solution, working directory `build/tasks` | the checker prints `PASS` |
+
+The 14 `check_task` tests are only registered when CMake finds Python 3.10 or later. Task 10 is only built when SQLite is found: always with MSVC (`winsqlite3`), otherwise `libsqlite3-dev`. Expect 95 tests without Python, 107 without SQLite, 94 without either.
+
+Run the checks by hand from the repository root, for example:
+
+```bash
+py -3.13 tasks/check/check.py 07 -- build/bin/task07_solution
+py -3.13 tasks/check/check.py 10 -- build/bin/task10_solution tasks/data
+py -3.13 tasks/check/check.py 12 -- build/bin/task12_solution tasks/data {port}
+```
 
 ### C++23 Targets (`-DCPPZH_ENABLE_CXX23=ON`)
 
@@ -156,7 +181,7 @@ ctest only checks the exit code. These lines confirm the examples behave as thei
 | `basics_03_signed_and_unsigned` | `(unsigned)-1 < 1u : false`, `std::cmp_less(-1, 1u) : true`, `-7 / 2 = -3` |
 | `basics_07_initialisation` | `a(3, 1) size 3: 1 1 1` and `b{3, 1} size 2: 3 1` |
 | `compilation_02_multi_file` | `shared_counter (inline) = 3`, `same address in both files? true`, per-file counters `1` and `2` |
-| `c_interop_03_name_mangling` | MSVC: `?add@@YAHHH@Z`, `?add@maths@@YAHHH@Z`, `?add@Calculator@@QEBAHHH@Z`, `c_add`. GCC/Clang: demangled `add(int, int)`, `maths::add(int, int)`, `Calculator::add(int, int) const` |
+| `c_interop_03_name_mangling` | MSVC: `?add@@YAHHH@Z`, `?add@maths@@YAHHH@Z`, `?add@Calculator@@QEBAHHH@Z`, `c_add`. GCC/Clang: the first section prints `(not available on this compiler: use nm)`, then `_Z3addii -> add(int, int)`, `maths::add(int, int)`, `Calculator::add(int, int) const` |
 | `c_interop_04_structs_and_layout` | `sizeof(Wasteful) = 12`, `sizeof(Compact) = 8` |
 | `oop_04_virtual_functions` | `sizeof(Polymorphic) = 16 (includes the vptr)`; `FancyPrinter copies=1` then `copies=5` |
 | `oop_06_multiple_inheritance` | Without virtual: two different ids; with virtual: `Device constructed with "photocopier"` |
@@ -166,7 +191,7 @@ ctest only checks the exit code. These lines confirm the examples behave as thei
 | `testing_calculator_test` | `12 passed, 0 failed` |
 | `under_the_hood_08_copy_elision` | No COPY or MOVE for RVO and NRVO; one MOVE for `make_either`; COPY then MOVE for `pass_through(c)` |
 | `under_the_hood_09_small_buffer_optimisation` | Release: length 15 inline with 0 allocations, length 16 heap with 1. MSVC Debug adds one proxy allocation each. libc++ keeps up to 22 characters inline. |
-| `datetime_04_time_zones` | MSVC and GCC 14: four zones listed, `London in July ... 13:00 BST`. libc++: the "not provided" message |
+| `datetime_04_time_zones` | MSVC, GCC 15 and Clang 21 with libstdc++: four zones listed, `London in July ... 13:00 BST`. libc++ 21: the "does not provide C++20 time zones yet" message |
 
 ---
 
@@ -186,7 +211,7 @@ done
 | signed-overflow | `runtime error: signed integer overflow` | silent (no UBSan on MSVC) |
 | shift | `runtime error: shift exponent 32 is too large` | silent |
 | heap-overflow | `AddressSanitizer: heap-buffer-overflow` | reported |
-| stack-overflow | `AddressSanitizer: stack-buffer-overflow` | reported |
+| stack-overflow | `runtime error: index 4 out of bounds` (UBSan) then `AddressSanitizer: stack-buffer-overflow` | reported |
 | use-after-free | `AddressSanitizer: heap-use-after-free` | reported |
 | double-free | `AddressSanitizer: attempting double-free` | reported |
 | dangling-view | `AddressSanitizer: heap-use-after-free` | reported |
@@ -213,3 +238,20 @@ Places most likely to need attention on a compiler other than MSVC. Each was wri
 | `under_the_hood/05_attributes.cpp` | `[[no_unique_address]]` ignored by MSVC | `[[msvc::no_unique_address]]` on MSVC; sizes printed, not asserted |
 | `under_the_hood/09_small_buffer_optimisation.cpp` | replaces global `operator new` | standard-conforming replacement; numbers are printed, not asserted |
 | `under_the_hood/02_structured_bindings.cpp` | lambda capture of structured bindings (C++20) needs Clang 16+ | within the stated minimum (Clang 17) |
+| `tasks/10_sqlite/*/db.h` | `<winsqlite/winsqlite3.h>` exists only in the Windows SDK | `__has_include` picks `<sqlite3.h>` elsewhere; CMake links `SQLite::SQLite3` and skips the task with a message if it is missing |
+| `tasks/12_library_api/solution/server.cpp` | Winsock vs POSIX sockets | POSIX branch verified on GCC 15 and Clang 21 (`close`, `timeval` for `SO_RCVTIMEO`, `SO_REUSEADDR` on POSIX only); the empty POSIX `NetworkSession` is `[[maybe_unused]]` |
+| `tasks/12_library_api/solution/openlibrary.cpp` | `popen` mode `"rb"` is Windows-only | `"r"` on POSIX |
+| `tasks/B_busy_library/solution/main.cpp` | `<latch>` needs GCC 11+, Clang 14+ with libc++ | within the stated minimums |
+
+### Fixed During the GCC/Clang Verification
+
+| File | What GCC or Clang reported | Fix |
+|------|----------------------------|-----|
+| `datetime/02_calendar.cpp` | GCC and Clang: `2024y.is_leap()` is one preprocessing number, so `operator""y.is_leap` is not found (MSVC accepted it) | `(2024y).is_leap()`, with a comment |
+| `under_the_hood/01_constexpr_and_consteval.cpp` | Clang with libstdc++: the `std::string(string_view)` constructor is not a constant expression | `std::string copy(text.begin(), text.end())` |
+| `tasks/08`, `09`, `12` `json.h` (4 copies) | Clang with libstdc++: `std::pair<std::string, JsonValue>` instantiated while `JsonValue` is incomplete | `JsonValue() = default;` declared in the struct |
+| `concurrency/04_atomics.cpp` | Clang 17: `counter.is_lock_free()` needs `__atomic_is_lock_free` from libatomic (link error) | prints `std::atomic<long>::is_always_lock_free` (compile time) |
+| `oop/06_multiple_inheritance.cpp` | GCC `-Wcomment`: a `//` diagram line ending in `\` continues onto the next line | diagram moved into a `/* */` comment |
+| `main.cpp` | GCC `-Wsequence-point` on `number++` inside a `<<` chain | increment on its own line |
+| `tasks/12_library_api/solution/server.cpp` | GCC/Clang `-Wunused-variable`: the POSIX `NetworkSession` is empty | `[[maybe_unused]]` |
+| `tasks/01` to `05` `starter/main.cpp` | Clang `-Wunused-const-variable` on the data constants the student has not used yet | `[[maybe_unused]]` on each, with a comment |

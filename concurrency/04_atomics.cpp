@@ -45,7 +45,10 @@ void atomic_counter()
     for (auto& th : threads) th.join();
 
     std::cout << "  expected " << kThreads * kIncrements << ", got " << counter.load() << '\n';
-    std::cout << "  atomic<long> lock-free here? " << std::boolalpha << counter.is_lock_free() << '\n';
+    // is_always_lock_free is answered at compile time. The run-time
+    // counter.is_lock_free() can need -latomic on Clang 17.
+    std::cout << "  atomic<long> lock-free here? " << std::boolalpha
+              << std::atomic<long>::is_always_lock_free << '\n';
 }
 
 // ------------------------------------------------------------

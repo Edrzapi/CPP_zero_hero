@@ -54,11 +54,16 @@ void save_it(const Saveable& s) { s.save("invoices/42.txt"); }
 // ------------------------------------------------------------
 // The Diamond Problem
 // ------------------------------------------------------------
-//            Device
-//           /      \
-//      Scanner    Printer
-//           \      /
-//          Photocopier
+/*
+            Device
+           /      \
+      Scanner    Printer
+           \      /
+          Photocopier
+*/
+// The diagram is a /* */ comment because a // comment line
+// ending in a backslash continues onto the next line (GCC
+// and Clang warn about it).
 //
 // Without virtual inheritance a Photocopier contains TWO Device
 // sub-objects (one via Scanner, one via Printer). Any access to a

@@ -57,8 +57,10 @@ void creating()
     year_month_day bad = 2026y / February / 30d;
     std::cout << "  2026-02-30 ok()  : " << bad.ok() << '\n';                 // false
 
-    // Leap years.
-    std::cout << "  2024 is leap     : " << 2024y.is_leap() << '\n';          // true
+    // Leap years. The brackets around 2024y are needed: without
+    // them the preprocessor reads 2024y.is_leap as one number
+    // token, which GCC and Clang reject (MSVC happens to accept it).
+    std::cout << "  2024 is leap     : " << (2024y).is_leap() << '\n';        // true
     std::cout << "  2100 is leap     : " << year{2100}.is_leap() << '\n';     // false
 }
 

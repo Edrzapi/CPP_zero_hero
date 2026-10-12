@@ -80,7 +80,10 @@ static_assert(sum_of_squares_of_evens(10) == 4 + 16 + 36 + 64 + 100);
 
 constexpr std::size_t count_words(std::string_view text)
 {
-    std::string copy{text};   // a constexpr std::string
+    // A constexpr std::string. It is built from two iterators
+    // because Clang with libstdc++ cannot run the string_view
+    // constructor at compile time (GCC and MSVC can).
+    std::string copy(text.begin(), text.end());
     std::size_t words = 0;
     bool in_word = false;
     for (char c : copy) {

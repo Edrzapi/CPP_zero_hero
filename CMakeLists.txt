@@ -91,3 +91,9 @@ add_subdirectory(datetime)
 add_subdirectory(concurrency)
 add_subdirectory(testing)
 add_subdirectory(under_the_hood)
+
+# ------------------------------------------------------------
+# Practical Tasks (the Library Manager, see tasks/README.md)
+# ------------------------------------------------------------
+
+add_subdirectory(tasks)

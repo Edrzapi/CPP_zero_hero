@@ -45,10 +45,12 @@ int main()
 
     int number = 1;
     for (const auto& topic : kSyllabus) {
-        std::cout << (number < 10 ? " " : "") << number++ << ". " << topic.folder;
+        std::cout << (number < 10 ? " " : "") << number << ". " << topic.folder;
+        ++number;
         for (auto pad = topic.folder.size(); pad < 16; ++pad) std::cout << ' ';
         std::cout << topic.summary << '\n';
     }
 
     std::cout << "\nExample: cmake --build build --target run_basics\n";
+    std::cout << "Practical tasks (the Library Manager): see tasks/README.md\n";
 }

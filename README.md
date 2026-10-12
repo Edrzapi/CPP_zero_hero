@@ -95,38 +95,43 @@ ctest --test-dir build --output-on-failure
 ./build/bin/basics_02_types_and_sizes
 ```
 
-> **Note:** No third-party libraries are needed. Everything uses the C++ standard library, plus one small C library inside the repository (`c_interop/02_c_library`).
+> **Note:** No third-party libraries are needed. Everything uses the C++ standard library, plus one small C library inside the repository (`c_interop/02_c_library`). The practical tasks also use what the operating system already provides: SQLite (task 10; on Linux install `libsqlite3-dev`), sockets (task 12) and the `curl` program (task 12 Stretch). Their checker needs Python 3.10 or later.
 
 ---
 
 ## Repository Structure
 
 ```
-├── basics/                 # Types, sizes, signed/unsigned, literals, const, references, initialisation
-├── control_flow/           # if/else, if with initialiser, switch, if constexpr
-├── iteration/              # Loops, range-for under the hood, generators (C++23)
-├── functions/              # Parameters, overloading, defaults, inline, lambdas, function pointers
-├── compilation/            # Preprocessor, translation units, headers, linkage, the ODR
-│   ├── 02_multi_file/      # A small static library split into headers and sources
-│   └── 03_odr_violation/   # Opt-in: what breaking the One Definition Rule looks like
-├── c_interop/              # C headers, extern "C", RAII wrappers, name mangling, struct layout
-│   └── 02_c_library/       # A C library (cstack.c) called from C++
-├── memory/                 # Stack vs heap, RAII, smart pointers, rule of 0/3/5, move semantics
-├── oop/                    # Classes, inheritance, vtables, slicing, diamonds, CRTP, operators
-│   └── 08_pimpl/           # PIMPL split across header, source and program
-├── collections/            # Containers, iterators, algorithms, ranges and views, span
-├── templates/              # Function/class templates, specialisation, variadics, concepts, SFINAE
-├── exceptions/             # try/catch, custom hierarchies, error codes, optional, noexcept, expected
-├── io/                     # iostreams, string streams, files, std::filesystem, std::format, std::print
-├── datetime/               # chrono durations and clocks, calendar dates, <ctime>, time zones
-├── concurrency/            # Threads, jthread, mutexes, condition variables, atomics, futures
-├── testing/                # assert, static_assert, mini_test.h harness, Calculator tests
-├── under_the_hood/         # constexpr, variant, string_view traps, attributes, placement new,
-│                           # copy elision, SSO, compiler flags, the UB lab
-├── cmake/zero_hero.cmake   # Shared build helpers (warnings, sanitizers, run_<topic> targets)
-├── CMakeLists.txt          # Top-level build: every example, test and option
-├── main.cpp                # Entry point: prints the syllabus
-└── VERIFY.md               # Every target and how to build, run and check it
+|-- basics/                 # Types, sizes, signed/unsigned, literals, const, references, initialisation
+|-- control_flow/           # if/else, if with initialiser, switch, if constexpr
+|-- iteration/              # Loops, range-for under the hood, generators (C++23)
+|-- functions/              # Parameters, overloading, defaults, inline, lambdas, function pointers
+|-- compilation/            # Preprocessor, translation units, headers, linkage, the ODR
+|   |-- 02_multi_file/      # A small static library split into headers and sources
+|   `-- 03_odr_violation/   # Opt-in: what breaking the One Definition Rule looks like
+|-- c_interop/              # C headers, extern "C", RAII wrappers, name mangling, struct layout
+|   `-- 02_c_library/       # A C library (cstack.c) called from C++
+|-- memory/                 # Stack vs heap, RAII, smart pointers, rule of 0/3/5, move semantics
+|-- oop/                    # Classes, inheritance, vtables, slicing, diamonds, CRTP, operators
+|   `-- 08_pimpl/           # PIMPL split across header, source and program
+|-- collections/            # Containers, iterators, algorithms, ranges and views, span
+|-- templates/              # Function/class templates, specialisation, variadics, concepts, SFINAE
+|-- exceptions/             # try/catch, custom hierarchies, error codes, optional, noexcept, expected
+|-- io/                     # iostreams, string streams, files, std::filesystem, std::format, std::print
+|-- datetime/               # chrono durations and clocks, calendar dates, <ctime>, time zones
+|-- concurrency/            # Threads, jthread, mutexes, condition variables, atomics, futures
+|-- testing/                # assert, static_assert, mini_test.h harness, Calculator tests
+|-- under_the_hood/         # constexpr, variant, string_view traps, attributes, placement new,
+|                           # copy elision, SSO, compiler flags, the UB lab
+|-- tasks/                  # Practical tasks: the Library Manager (see Tasks below)
+|   |-- data/               # Shared sample data (CSV, SQL schema, recorded API response)
+|   |-- check/              # check.py: compares a program's output with expected.txt
+|   `-- 01_bookshelf/ ... 12_library_api/, B_busy_library/
+|                           # README.md brief, expected.txt, starter/, solution/
+|-- cmake/zero_hero.cmake   # Shared build helpers (warnings, sanitizers, run_<topic> targets)
+|-- CMakeLists.txt          # Top-level build: every example, test and option
+|-- main.cpp                # Entry point: prints the syllabus
+`-- VERIFY.md               # Every target and how to build, run and check it
 ```
 
 Files inside each folder are numbered in teaching order: `01_...cpp`, `02_...cpp`.
@@ -216,9 +221,29 @@ cmake --build build-ub --target under_the_hood_ub_examples
 
 ---
 
-## Practical Tasks
+## Tasks
 
-Tasks for this repository follow the **shared Zero to Hero task specification**: one progressive "Library" project, used identically across every language in the family. They will be added under `tasks/` once the shared specification is final.
+The [`tasks/`](tasks/README.md) folder holds the **Library Manager**, one practical project shared by every Zero to
+Hero repo: 12 tasks and a bonus in Python, Java, C#, C++ and JavaScript, and eight tasks (S1 to S8) in SQL's own
+order on the same database. Every repo uses the same briefs, the same sample data and the same expected output; only
+the code differs.
+
+- **One task per session.** Each task is the end-of-session check and builds on the one before, so by the end the
+  learner has one working program.
+- **Three levels:** Core (everyone), Stretch (for those who finish early) and Challenge (the strongest learners, or
+  homework).
+- **Every task folder** has the brief (`README.md`), the exact expected output (`expected.txt`), a `starter/` that
+  runs as it is (unfinished parts say "not implemented") and a `solution/` with Core and Stretch.
+- **One checker:** `tasks/check/check.py` (Python 3.10 or later, standard library only) runs a program and prints
+  `PASS`, or `FAIL` with the first line that differs from `expected.txt`. On Windows, `py` works in place of
+  `python`.
+
+[tasks/README.md](tasks/README.md) has the session to task map, the 3-day and 5-day selections, and the run and
+check command for every task. To check the first task's solution, from the repo root:
+
+```bash
+cmake --build build --target task01_solution && python tasks/check/check.py 01 -- build/bin/task01_solution
+```
 
 ---
 
