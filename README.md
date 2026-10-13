@@ -1,5 +1,7 @@
 # C++ Zero to Hero
 
+[![Tasks](https://github.com/devfoundry-training/CPP_zero_hero/actions/workflows/tasks.yml/badge.svg)](https://github.com/devfoundry-training/CPP_zero_hero/actions/workflows/tasks.yml)
+
 A structured teaching repository covering modern C++ (C++20) from its C foundations through to templates, concurrency and what happens under the hood. Each topic is a folder of standalone, runnable examples with in-code commentary, built with CMake. Part of the Zero to Hero course family.
 
 ---
