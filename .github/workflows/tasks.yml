@@ -1,0 +1,55 @@
+# Checks the Library Manager tasks on every push: the whole repository must build with no warnings on
+# GCC, Clang and MSVC, and ctest must pass (every example, every task check and every starter).
+
+# name: the workflow's name on the Actions tab.
+name: Tasks
+
+# on: the events that start the workflow.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+# jobs: the work to do. Each job runs on a fresh machine.
+jobs:
+  check:
+    # strategy.matrix: run the same job once per compiler.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: GCC, os: ubuntu-latest, cc: gcc, cxx: g++ }
+          - { name: Clang, os: ubuntu-latest, cc: clang, cxx: clang++ }
+          - { name: MSVC, os: windows-latest, cc: cl, cxx: cl }
+    name: ${{ matrix.name }}
+    # runs-on: the kind of machine GitHub starts for the job.
+    runs-on: ${{ matrix.os }}
+    # steps: run in order. "uses" runs a published action, "run" runs shell commands.
+    steps:
+      - name: Check out this repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python (for the checker)
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install Ninja and SQLite (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ninja-build libsqlite3-dev
+
+      - name: Set up the MSVC command line (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+        run: cmake -S . -B build -G Ninja -DCPPZH_WARNINGS_AS_ERRORS=ON
+
+      - name: Build everything
+        run: cmake --build build
+
+      - name: Run every test and task check
+        run: ctest --test-dir build --output-on-failure
